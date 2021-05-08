@@ -13128,21 +13128,20 @@ div#notebook {
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><font color=black size=3 face=times><strong>1.1. Notation declaration</strong><br>
-The SDE of Heston model expressed by:
+    &emsp;&emsp;The Heston model is defined by the coupled two-dimensional SDE:
     <br/>
     \begin{align*}
     &amp;dS(t)/S(t)=\sqrt{V(t)}dW_S(t) ,\\
     &amp;dV(t)=\kappa(\theta-V(t))dt+\epsilon\sqrt{V(t)}dW_V(t),
-    \end{align*}</p>
-<ul>
-<li>$S$ and $V$ denote stock price and volatility, respectively  </li>
-<li>$W_S$ and $W_V$ are scalar Brownian motions in some probability measure and assume that $dW_S(t)\dot dW_V(t)=\rho dt$ <br></li>
-</ul>
-<p>To discretize $V$, the modified <strong>Euler Scheme</strong> would take the form:
+    \end{align*} 
+    &emsp;&emsp;where<br>
+&emsp;&emsp;- $S$ and $V$ denote stock price and volatility, respectively<br>
+&emsp;&emsp;- $W_S$ and $W_V$ are scalar Brownian motions in some probability measure and assume that $dW_S(t)\dot dW_V(t)=\rho dt$ <br></p>
+<p>&emsp;&emsp;To discretize $V$, the modified <strong>Euler Scheme</strong> would take the form:
  \begin{align*}
    &amp;\widehat{V}(t+\Delta)=\widehat{V}(t)+\kappa(\theta-\widehat{V}(t)^{+})\Delta+\epsilon\sqrt{\widehat{V}(t)^{+}}Z_V\sqrt{\Delta},
     \end{align*}</p>
-<p>The modified <strong>Milstein Scheme</strong> would take the form:
+<p>&emsp;&emsp;The modified <strong>Milstein Scheme</strong> would take the form:
   \begin{align*}
    &amp;\widehat{V}(t+\Delta)=\widehat{V}(t)+\kappa(\theta-\widehat{V}(t)^{+})\Delta+\epsilon\sqrt{\widehat{V}(t)^{+}}Z_V\sqrt{\Delta}+\frac{\epsilon^2}{4}\Delta(Z_V^2-1),
     \end{align*}</p>
@@ -13160,7 +13159,7 @@ The SDE of Heston model expressed by:
     s^2&amp;=\frac{\widehat{V}(t)\epsilon^2 e^{-\kappa\Delta}}{\kappa}(1-e^{-\kappa\Delta})+\frac{\theta\epsilon^2}{2\kappa}(1-e^{-\kappa\Delta})^2,\tag{$1.2$}\\
     \psi&amp;\equiv s^2/m^2 =\frac{\frac{\widehat{V}(t)\epsilon^2 e^{-\kappa\Delta}}{\kappa}(1-e^{-\kappa\Delta})+\frac{\theta\epsilon^2}{2\kappa}(1-e^{-\kappa\Delta})^2}{(\theta+(\widehat{V}(t)-\theta)e^{-\kappa\Delta})^2}, \tag{$1.3$}
     \end{align*}
-    &emsp;&emsp;Where the $m$ and $s^2$ are from the true conditional distribution, i.e.
+    &emsp;&emsp;where the $m$ and $s^2$ are from the true conditional distribution, i.e.
     \begin{align*}
     &amp;m\equiv E(V(t+\Delta)|V(t)=\widehat{V}(t)),\\
     &amp;s^2\equiv Var(V(t+\Delta)|V(t)=\widehat{V}(t)),\\
@@ -13204,7 +13203,7 @@ The SDE of Heston model expressed by:
 \end{aligned},\tag{$1.8$}
 \right.
 $$
-    &emsp;&emsp; Where $\Psi(x)=Pr(\widehat{V}(t+\Delta)\leq x)=p+(1-p)(1-e^{-\beta x}), x\geq 0$ is the approximate cdf for low values of $\widehat{V}(t)$.<br> 
+    &emsp;&emsp; where $\Psi(x)=Pr(\widehat{V}(t+\Delta)\leq x)=p+(1-p)(1-e^{-\beta x}), x\geq 0$ is the approximate cdf for low values of $\widehat{V}(t)$.<br> 
     &emsp;&emsp; The scheme varies when $\psi$ is big and when $\psi$ is small.<br>
     &emsp;&emsp; Assume that some arbitrary level $\psi_c\in [1,2]$ has been selected. The detailed algorithm for the QE simulation step from $\widehat{V}(t)$ to $\widehat{V}(t+\Delta)$ is then:<br>
     &emsp;&emsp;1. Given $\widehat{V}(t)$, compute $m$ and $s^2$ from the equations (1.1) and (1.2).<br>
@@ -14067,13 +14066,14 @@ Running time is 432.588 seconds.
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><font color=black size=3 face=times><strong>2.1. Derive Conditional MC for 3/2 model from Heston model</strong> <br>
+<p><font color=black size=3 face=times><strong>2.1. Notation declaration</strong> <br>
     &emsp;&emsp;Under 3/2 model, the stock price and volatility can be written as:
     \begin{align*}
     &amp;dv_t=\kappa v_t(\theta-v_t)dt+\nu v_t^{3/2}dZ_t,\tag{$2.1$}\\
     &amp;\frac{dS_t}{S_t}=\sigma_t dW_t=\sigma_t(\rho dZ_t+\rho_{*}dX_t),\tag{$2.2$}\\
     \end{align*}
 &emsp;&emsp;where $\rho_{*}=\sqrt{1-\rho^2},v_t=\sigma_t^2$<br>
+    <strong>2.2. Derive Conditional MC for 3/2 model from Heston model</strong> <br>
     &emsp;&emsp;By changing the variable $x_t=1/v_t$, we obtain:
     $$dx_t=-\frac{dv_t}{v_t^2}+\frac{(dv_t)^2}{v_t^3}=(\kappa+\nu^2-\kappa\theta x_t)dt-\nu \sqrt{x_t}dZ_t,\tag{$2.3$}$$
     &emsp;&emsp;which is equivalent to Heston model with new parameters:
