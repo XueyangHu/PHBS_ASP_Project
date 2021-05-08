@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon, May 3, 2021
+Last modified on Fri, May 7, 2021
 Conditional MC for 3/2 model based on QE discretization scheme by Andersen(2008)
 @author: Xueyang & Xiaoyin
 """
@@ -73,7 +74,7 @@ class Sv32CondMcQE:
             divr: dividend/convenience yield (foreign interest rate)
             psi_c: critical value for psi, lying in [1, 2]
             path: number of vol paths generated
-            scheme: discretization scheme for vt, {'QE', 'TG', 'Euler', 'Milstein'}
+            scheme: discretization scheme for vt, {'QE', 'TG', 'Euler', 'Milstein', 'KJ'}
             seed: random seed for rv generation
 
         Return:
@@ -134,10 +135,7 @@ class Sv32CondMcQE:
                      ((1 - expo) ** 2) / (2 * kappa_new)
                 psi = s2 / m ** 2
 
-                # NEED TO BE MODIFIED
-                # rx = np.array([(self.rx_results[int(j/self.dis)] + self.rx_results[int(j/self.dis)+1]) / 2 for j in psi])
-                rx = np.array([(self.rx_results[self.psi_points >= j][0] + self.rx_results[self.psi_points <= j][-1])/2
-                               for j in psi])
+                rx = np.array([self.find_rx(j) for j in psi])
 
                 z = np.random.normal(size=(self.path, self.step))
                 mu_v = np.zeros_like(z)
@@ -152,8 +150,6 @@ class Sv32CondMcQE:
             for i in range(self.step):
                 xt[:, i+1] = xt[:, i] + kappa_new * (theta_new - np.max(xt[:, i], 0)) * self.delta + \
                              vov_new * np.sqrt(np.max(xt[:, i], 0) * self.delta) * z[:, i]
-            below_0 = np.where(xt < 0)
-            xt[below_0] = 0
 
         elif scheme == 'Milstein':
             z = np.random.normal(size=(self.path, self.step))
@@ -161,8 +157,6 @@ class Sv32CondMcQE:
                 xt[:, i+1] = xt[:, i] + kappa_new * (theta_new - np.max(xt[:, i], 0)) * self.delta + vov_new * \
                              np.sqrt(np.max(xt[:, i], 0) * self.delta) * z[:, i] + \
                              vov_new**2 * 0.25 * (z[:, i]**2 - 1) * self.delta
-            below_0 = np.where(xt < 0)
-            xt[below_0] = 0
 
         elif scheme == 'KJ':
             z = np.random.normal(size=(self.path, self.step))
@@ -170,11 +164,11 @@ class Sv32CondMcQE:
                 xt[:, i+1] = (xt[:, i] + kappa_new * theta_new * self.delta + vov_new * \
                              np.sqrt(np.max(xt[:, i], 0) * self.delta) * z[:, i] + \
                              vov_new**2 * 0.25 * (z[:, i]**2 - 1) * self.delta) / (1 + kappa_new * self.delta)
-            below_0 = np.where(xt < 0)
-            xt[below_0] = 0
 
         # compute integral of vt, equivalent spot and vol
         vt = 1 / xt
+        below_0 = np.where(vt < 0)
+        vt[below_0] = 0
         vt_int = spint.simps(vt, dx=self.delta)
 
         spot_cmc = spot * np.exp(self.rho / self.vov * (np.log(vt[:, -1] / vt[:, 0]) - self.kappa *
@@ -190,19 +184,28 @@ class Sv32CondMcQE:
 
 
     def prepare_rx(self):
-        # for TG scheme only, pre-calculate r(x) and store the result
-        # NEED TO BE MODIFIED
+        '''
+        Pre-calculate r(x) and store the result
+        for TG scheme only
+        '''
         fx = lambda rx: rx * st.norm.pdf(rx) + st.norm.cdf(rx) * (1 + rx ** 2) / \
                         ((st.norm.pdf(rx) + rx * st.norm.cdf(rx)) ** 2) - 1
         rx_results = np.linspace(-2, 100, 10 ** 5)
         psi_points = fx(rx_results)
 
-        # psi_points = np.linspace(0, 100, 10 ** 4)
-        # rx_results = np.zeros_like(psi_points)
-        # for i in range(len(psi_points)):
-        #     r_psi = lambda rx: rx * st.norm.pdf(rx) + st.norm.cdf(rx) * (1 + rx ** 2) / \
-        #                 ((st.norm.pdf(rx) + rx * st.norm.cdf(rx)) ** 2) - 1 - psi_points[i]
-        #     rx_results[i] = sopt.brentq(r_psi, -2, 2)
-
         return psi_points, rx_results
+
+    def find_rx(self, psi):
+        '''
+        Return r(psi) according to the pre_calculated results
+        '''
+
+        if self.rx_results[self.psi_points >= psi].size == 0:
+            print("Caution: input psi too large")
+            return self.rx_results[-1]
+        elif self.rx_results[self.psi_points <= psi].size == 0:
+            print("Caution: input psi too small")
+            return self.rx_results[0]
+        else:
+            return (self.rx_results[self.psi_points >= psi][0] + self.rx_results[self.psi_points <= psi][-1])/2
 

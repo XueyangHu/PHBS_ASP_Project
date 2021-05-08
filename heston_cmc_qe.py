@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thur, Apr 29, 2021
+Last modified on Fri, May 7, 2021
 Conditional MC for Heston model based on QE discretization scheme by Andersen(2008)
 @author: Xueyang & Xiaoyin
 """
@@ -130,10 +131,7 @@ class HestonCondMcQE:
                      ((1 - expo) ** 2) / (2 * self.kappa)
                 psi = s2 / m ** 2
 
-                # NEED TO BE MODIFIED
-                # rx = np.array([(self.rx_results[int(j/self.dis)] + self.rx_results[int(j/self.dis)+1]) / 2 for j in psi])
-                rx = np.array([(self.rx_results[self.psi_points >= j][0] + self.rx_results[self.psi_points <= j][-1])/2
-                               for j in psi])
+                rx = np.array([self.find_rx(j) for j in psi])
 
                 z = np.random.normal(size=(self.path, self.step))
                 mu_v = np.zeros_like(z)
@@ -182,22 +180,30 @@ class HestonCondMcQE:
 
         return price_cmc
 
-
     def prepare_rx(self):
-        # for TG scheme only, pre-calculate r(x) and store the result
-        # NEED TO BE MODIFIED
+        '''
+        Pre-calculate r(x) and store the result
+        for TG scheme only
+        '''
         fx = lambda rx: rx * st.norm.pdf(rx) + st.norm.cdf(rx) * (1 + rx ** 2) / \
                         ((st.norm.pdf(rx) + rx * st.norm.cdf(rx)) ** 2) - 1
         rx_results = np.linspace(-2, 100, 10 ** 5)
         psi_points = fx(rx_results)
 
-        # psi_points = np.linspace(0, 100, 10 ** 4)
-        # rx_results = np.zeros_like(psi_points)
-        # for i in range(len(psi_points)):
-        #     r_psi = lambda rx: rx * st.norm.pdf(rx) + st.norm.cdf(rx) * (1 + rx ** 2) / \
-        #                 ((st.norm.pdf(rx) + rx * st.norm.cdf(rx)) ** 2) - 1 - psi_points[i]
-        #     rx_results[i] = sopt.brentq(r_psi, -2, 2)
-
         return psi_points, rx_results
+
+    def find_rx(self, psi):
+        '''
+        Return r(psi) according to the pre_calculated results
+        '''
+
+        if self.rx_results[self.psi_points >= psi].size == 0:
+            print("Caution: input psi too large")
+            return self.rx_results[-1]
+        elif self.rx_results[self.psi_points <= psi].size == 0:
+            print("Caution: input psi too small")
+            return self.rx_results[0]
+        else:
+            return (self.rx_results[self.psi_points >= psi][0] + self.rx_results[self.psi_points <= psi][-1])/2
 
 

@@ -113,8 +113,8 @@ class HestonMCAe:
         integral_sqrt_sigma_t = (sigma_t**2 - sigma_0**2 - self.kappa * self.theta * texp + self.kappa * integral_sigma_t)\
                                 / self.vov
         mean = np.log(spot) + (self.r * texp - 0.5 * integral_sigma_t + self.rho * integral_sqrt_sigma_t)
-        sigma_2 = (1 - self.rho ** 2) * integral_sigma_t
-        s_t = np.exp(mean + np.sqrt(sigma_2) * np.random.normal(size=n_paths))
+        sigma_2 = np.sqrt((1 - self.rho ** 2) * integral_sigma_t)
+        s_t = np.exp(mean + sigma_2 * np.random.normal(size=n_paths))
         return s_t
 
     def price(self, strike, spot, texp, sigma_0, intr=0, divr=0, n_paths=10000, seed=None,
@@ -161,12 +161,9 @@ class HestonMCAe:
             print("This function is not currently a candidate function!")
             return -1
 
-        price_ae = np.zeros_like(strike)
         if call:
-            for j in range(len(strike)):
-                price_ae[j] = np.fmax(s_t - strike[j], 0).mean()
+            price_ae = np.fmax(s_t - strike, 0).mean()
         else:
-            for j in range(len(strike)):
-                price_ae[j] = np.fmax(strike[j] - s_t, 0).mean()
+            price_ae = np.fmax(strike - s_t, 0).mean()
 
-        return price_ae
+        return np.exp(- self.r * texp) * price_ae
